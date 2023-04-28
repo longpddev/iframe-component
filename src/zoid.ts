@@ -1,0 +1,98 @@
+import { TinyEmitter } from 'tiny-emitter';
+import './zoid-events'
+import { ZoidEvents, ZoidMessage, ZoidProps, isIframe, makeEvent, parseMessage, zoid_id } from './common';
+
+
+class ZoidRendering {
+  private iframe: HTMLIFrameElement | null = null;
+  private destroyable: Array<() => void> = [];
+  private emitter = new TinyEmitter();
+  constructor(
+    private readonly element: HTMLElement, 
+    private readonly url: string,
+    private readonly props: ZoidProps, 
+    private readonly events: ZoidEvents
+  ) {}
+
+  setupIframe () {
+    this.iframe = document.createElement('iframe');
+    this.iframe.src = this.url;
+    this.element.appendChild(this.iframe);
+    const handle = this.handle.bind(this);
+    this.iframe?.contentWindow?.addEventListener(zoid_id, handle);
+    this.destroyable.push(() => this.iframe?.contentWindow?.removeEventListener(zoid_id, handle))
+  }
+
+  handle(event: Event) {
+    const { type, eventName, data } = parseMessage(event);
+    if(type === 'request') {
+      if(this.events[eventName]) {
+        const fn = this.events[eventName];
+        let result = fn(data);
+        if(result instanceof Promise) {
+          result = result.then((data: any) => {
+            const message: ZoidMessage = {
+              type: 'response',
+              eventName,
+              data,
+            }
+            const customEvent = new CustomEvent(zoid_id, { detail: message });
+            this.iframe?.contentWindow?.dispatchEvent(customEvent);
+          })
+        } else {
+          const message: ZoidMessage = {
+            type: 'response',
+            eventName,
+            data: result,
+          }
+          const customEvent = new CustomEvent(zoid_id, { detail: message });
+          this.iframe?.contentWindow?.dispatchEvent(customEvent);
+        }
+      }
+    } else if(type === 'response') {
+      this.emitter.emit(eventName, data);
+    }
+  }
+
+  render() {
+    this.setupIframe();
+  }
+
+  destroy() {
+    this.iframe?.remove();
+    this.destroyable.forEach(fn => fn());
+    this.emitter.off('*');
+  }
+}
+
+class Zoid {
+  private props: ZoidProps;
+  private events: ZoidEvents;
+  private componentName: string;
+  constructor({ props, events, componentName }: { props: ZoidProps; events: ZoidEvents, componentName: string }) {
+    this.props = props;
+    this.events = events;
+    this.componentName = componentName;
+    if(isIframe) {
+      this.makeConnect();
+    }
+  }
+
+  makeConnect() {
+    makeEvent(window, 'connect', { componentName: this.componentName });
+  }
+
+  render(element: HTMLElement = document.body) {
+
+  }
+}
+
+export const customComponent = new Zoid({
+  componentName: 'customComponent',
+  props: {
+    email: 'string',
+  },
+  events: {
+    onChange: (email: string) => {},
+  }
+})
