@@ -1,11 +1,8 @@
-import { FunAny } from "./common";
+import { FunAny, lazyRun } from "./common";
 import { FrameEventControl } from "./frameEventControl";
 
 const ZOID_FUNCTION_TYPE = 'zoid-function-sdfjlks234902873sc,msdh';
 
-const lazyRun = (cb: FunAny) => {
-    ('queueMicrotask' in window ? window.queueMicrotask : setTimeout)(cb);
-}
 
 const decodeProps = (props: Record<string, any>, onMethodCall: (method: string, args: any) => void) => {
     const result: Record<string, any> = {};
