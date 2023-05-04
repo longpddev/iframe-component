@@ -114,3 +114,7 @@ export function parseMessage(event: Event) {
   return { type, eventName, data };
 }
 
+export const lazyRun = (cb: FunAny = () => {}) => {
+    ('queueMicrotask' in window ? window.queueMicrotask : setTimeout)(cb);
+}
+
