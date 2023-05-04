@@ -1,6 +1,8 @@
 import { init as initHomePage } from './home-page';
 import { init as initLoginPage } from './login-page';
 import { init as initIframePage } from './iframe-page';
+import { init as initNewSolutionPage } from './new-solution-page';
+import { init as initLovePage } from './love-page'
 
 switch(location.pathname) {
   case '/': {
@@ -13,6 +15,14 @@ switch(location.pathname) {
   }
   case '/iframe': {
     initIframePage();
+    break;
+  }
+  case '/new-solution': {
+    initNewSolutionPage();
+    break;
+  }
+  case '/love': {
+    initLovePage();
     break;
   }
   default: {
