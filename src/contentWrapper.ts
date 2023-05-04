@@ -1,4 +1,5 @@
 import { TinyEmitter } from "tiny-emitter";
+import {run} from "./common";
 
 // const createDelayedStatusEmitter = (/** @type {TinyEmitter} */emitter) => ({
 //     when: (/** @type {string} */status) => ({
@@ -53,7 +54,6 @@ export class ContentWrapper {
     public iframe: HTMLIFrameElement | undefined;
     constructor(
         private readonly container: HTMLElement,
-        private readonly type: 'pop-up' | 'new-window',
         private readonly url: string
     ) {}
 
@@ -65,25 +65,17 @@ export class ContentWrapper {
     render() {
         const iframe = document.createElement('iframe');
         this.iframe = iframe
-        const wrapper = document.createElement('div');
+        const main = document.createElement('div');
         const overlay = document.createElement('div');
+        const wrapIframe = document.createElement('div');
         const style = document.createElement('style');
+        wrapIframe.appendChild(iframe)
         iframe.src = this.url;
-        
+        const animationTime = 0;
         style.innerHTML = `
-            .popup-status-open {
-                opacity: 0;
-                top: -100%;
-            }
-
-            .popup-status-opened {
-                opacity: 1;
-                top: 0;
-            }
-
-            .popup-status-close {
-                opacity: 0;
-            }
+          :root {
+            --animate-duration: ${animationTime}ms;
+          }
         `
 
         setStyle(overlay, `
@@ -98,7 +90,7 @@ export class ContentWrapper {
             opacity: 0.1;
         `)
 
-        setStyle(wrapper, `
+        setStyle(main, `
             position: fixed;
             bottom: 0;
             right: 0;
@@ -111,53 +103,59 @@ export class ContentWrapper {
             outline: 0;
             opacity: 1;
             background-color: white;
-            transition: all 3s;
         `)
 
-        setStyle(iframe, `
+        setStyle(wrapIframe, `
             position: absolute;
-            border-radius: 10px;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 500px;
-            height: 500px;
+        `)
+
+        setStyle(iframe, `
             border: 0;
             outline: 0;
+            width: 500px;
+            height: 500px;
             background-color: white;
+            border-radius: 10px;
         `)
 
         overlay.addEventListener('click', () => {
             this.emitter.emit('close');
         })
 
-        createDelayedStatusEmitter(this.emitter).when('open').wait(50).trigger('opened');
-        createDelayedStatusEmitter(this.emitter).when('close').wait(300).trigger('closed');
+        createDelayedStatusEmitter(this.emitter).when('open').wait(animationTime).trigger('opened');
+        createDelayedStatusEmitter(this.emitter).when('close').wait(animationTime).trigger('closed');
         
-        wrapper.appendChild(style);
-        wrapper.appendChild(overlay);
-        wrapper.appendChild(iframe);
-        this.container.appendChild(wrapper);
+        main.appendChild(style);
+        main.appendChild(overlay);
+        main.appendChild(wrapIframe);
+        this.container.appendChild(main);
 
-        const wrapperAddStatus = (status: 'open' | 'close' | 'opened' | 'closed') => {
-            const addPrefix = (str: string) => `popup-status-${str}`
-            const listClass = ['open' , 'close' , 'opened' , 'closed'].map(addPrefix)
-            wrapper.classList.remove(...listClass)
-            wrapper.classList.add(addPrefix(status))
-        }
+        const addAndRemovePrev = run(() => {
+            let prev: Array<string>;
+            return (className: string | Array<string>) => {
+                const listClassName = Array.isArray(className) ? className : [className]
+                if(prev) {
+                    iframe.classList.remove(...prev);
+                }
+
+                prev = listClassName;
+                iframe.classList.add(...listClassName)
+            }
+        })
         
         this.emitter.on('open', () => {
-            wrapperAddStatus('open')
+            addAndRemovePrev(['animate__animated' ,'animate__fadeInUp'])
         })
         this.emitter.on('opened', () => {
-            wrapperAddStatus('opened')
         })
         this.emitter.on('close', () => {
-            wrapperAddStatus('close')
+            addAndRemovePrev(['animate__animated' ,'animate__fadeOutUp'])
         })
         this.emitter.on('closed', () => {
-            wrapperAddStatus('closed');
-            wrapper.remove();
+            main.remove();
         })
         this.emitter.emit('open')
         return iframe;

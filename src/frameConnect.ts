@@ -46,7 +46,6 @@ export class MainConnectToFrame {
             throw new Error('contentWindow is null');
         }
 
-        window._run = () => console.log(contentWindow)
         this.eventControl = new FrameEventControl(contentWindow, 'Parent')
     }
 
@@ -55,16 +54,18 @@ export class MainConnectToFrame {
             this.eventControl.once('connect-frame-to-main', res);
         })
 
-        console.log('connect-frame-to-main')
         this.eventControl.emit('connect-main-to-frame');
     }
 
-    onMethodCall(cb: (method: string, args: any) => void) {
-        this.eventControl.on('method-call', cb);
+    onMethodCall(cb: (args: {method: string, args: any}) => void, once?: boolean) {
+        this.eventControl[(once ? 'once' : 'on')]('method-call', cb);
     }
 
     setProps(props: Record<string, any>) {
         lazyRun(() => {
+            this.onMethodCall(({method, args}) => {
+                props[method](...(args ?? []))
+            }, true)
             this.eventControl.emit('props', encodeProps(props));
         })
     }

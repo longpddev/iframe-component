@@ -82,9 +82,9 @@ class Zoid {
     makeEvent(window, 'connect', { componentName: this.componentName });
   }
 
-  render(element: HTMLElement = document.body) {
+  // render(element: HTMLElement = document.body) {
 
-  }
+  // }
 }
 
 export const customComponent = new Zoid({
@@ -93,6 +93,6 @@ export const customComponent = new Zoid({
     email: 'string',
   },
   events: {
-    onChange: (email: string) => {},
+    onChange: () => {},
   }
 })

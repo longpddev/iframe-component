@@ -61,10 +61,10 @@ export class EventRPC {
     }
 
     public async call(fnName: string, ...args: any[]) {
-        const id = randomString();
+        const id = generateHexString(8);
         const event = new CustomEvent(this.pipeline, { detail: dataEvent(fnName, args, 'request', id) });
         this.element.dispatchEvent(event);
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             this.callbacks.set(id, (data: any) => resolve(data));
         })
     }
@@ -79,8 +79,8 @@ export class EventRPC {
     }
 }
 
-export const run = (fn: () => void) => {
-    fn();
+export const run = <F extends (...args: any) => any> (fn: F): ReturnType<F> => {
+    return fn();
 }
 
 export type FunAny = (...args: any[]) => any;
